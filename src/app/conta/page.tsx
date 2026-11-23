@@ -16,6 +16,8 @@ export default function Conta() {
   const router = useRouter();
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [email, setEmail] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState("");
 
   useEffect(() => {
     async function carregar() {
@@ -28,12 +30,15 @@ export default function Conta() {
       }
       setEmail(data.user.email ?? "");
 
-      const { data: p } = await supabase
+      const { data: p, error } = await supabase
         .from("profiles")
         .select("nome, papel")
         .eq("id", data.user.id)
-        .single();
+        .maybeSingle();
+
+      if (error) setErro(error.message);
       setPerfil(p);
+      setCarregando(false);
     }
     carregar();
   }, [router]);
@@ -44,8 +49,10 @@ export default function Conta() {
     router.refresh();
   }
 
-  if (!perfil) {
-    return <p className="px-6 py-16 text-center text-slate-500">Carregando...</p>;
+  if (carregando) {
+    return (
+      <p className="px-6 py-16 text-center text-slate-500">Carregando...</p>
+    );
   }
 
   return (
@@ -53,9 +60,25 @@ export default function Conta() {
       <h1 className="text-3xl font-bold">Minha conta</h1>
 
       <div className="mt-8 space-y-3 rounded-xl bg-white p-6 shadow-sm">
-        <p><span className="font-medium">Nome:</span> {perfil.nome}</p>
-        <p><span className="font-medium">E-mail:</span> {email}</p>
-        <p><span className="font-medium">Perfil:</span> {nomesPapel[perfil.papel] ?? perfil.papel}</p>
+        <p>
+          <span className="font-medium">E-mail:</span> {email}
+        </p>
+        {perfil ? (
+          <>
+            <p>
+              <span className="font-medium">Nome:</span> {perfil.nome}
+            </p>
+            <p>
+              <span className="font-medium">Perfil:</span>{" "}
+              {nomesPapel[perfil.papel] ?? perfil.papel}
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-red-600">
+            Perfil não encontrado{erro ? ` (${erro})` : ""}. Verifique se a
+            tabela profiles foi criada no Supabase.
+          </p>
+        )}
       </div>
 
       <button
