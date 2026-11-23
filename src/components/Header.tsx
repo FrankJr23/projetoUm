@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 const links = [
   { href: "/series", label: "Aulas" },
@@ -12,6 +13,24 @@ const links = [
 
 export default function Header() {
   const [aberto, setAberto] = useState(false);
+  const [logado, setLogado] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    supabase.auth.getUser().then(({ data }) => setLogado(!!data.user));
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_evento, sessao) => {
+      setLogado(!!sessao?.user);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const destino = logado ? "/conta" : "/entrar";
+  const rotulo = logado ? "Minha conta" : "Entrar";
 
   return (
     <header className="sticky top-0 z-50 bg-indigo-700 text-white shadow">
@@ -27,10 +46,10 @@ export default function Header() {
             </Link>
           ))}
           <Link
-            href="/entrar"
+            href={destino}
             className="rounded-lg bg-white px-4 py-2 font-semibold text-indigo-700 hover:bg-indigo-50"
           >
-            Entrar
+            {rotulo}
           </Link>
         </nav>
 
@@ -50,8 +69,12 @@ export default function Header() {
               {l.label}
             </Link>
           ))}
-          <Link href="/entrar" onClick={() => setAberto(false)} className="font-semibold">
-            Entrar
+          <Link
+            href={destino}
+            onClick={() => setAberto(false)}
+            className="font-semibold"
+          >
+            {rotulo}
           </Link>
         </nav>
       )}
